@@ -1,46 +1,136 @@
+using System.Data;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using MySqlConnector;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Read connection string from appsettings.json
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+builder.Services.AddSingleton(new MySqlConnection(connectionString));
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+using (var scope = app.Services.CreateScope())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    var conn = scope.ServiceProvider.GetRequiredService<MySqlConnection>();
+    try
+    {
+        await conn.OpenAsync();
+        Console.WriteLine("Successfully connected to the database.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Database connection failed: {ex.Message}");
+    }
+    finally
+    {
+        await conn.CloseAsync();
+    }
 }
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
+app.MapGet("/getAllTables", async (MySqlConnection conn) =>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+    try
+    {
+        Console.WriteLine("getAllTalbe");
+        await conn.OpenAsync();
+        using var cmd = new MySqlCommand("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'", conn);
+        using var reader = await cmd.ExecuteReaderAsync();
 
-app.MapGet("/",()=>{return "hello from C#";});
+        var tables = new List<string>();
+        while (await reader.ReadAsync())
+        {
+            tables.Add(reader.GetString(0));
+        }
 
-app.MapGet("/weatherforecast", () =>
+        return Results.Ok(tables);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Error fetching tables: {ex.Message}");
+    }
+    finally
+    {
+        await conn.CloseAsync();
+    }
+});
+
+app.MapPost("/createTable/{tableName}", async (string tableName, MySqlConnection conn) =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+    try
+    {
+        await conn.OpenAsync();
+        var query = $"CREATE TABLE `{tableName}` (id INT PRIMARY KEY AUTO_INCREMENT, Value INT)";
+        using var cmd = new MySqlCommand(query, conn);
+        await cmd.ExecuteNonQueryAsync();
 
+        return Results.Ok($"Table '{tableName}' created successfully.");
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Error creating table: {ex.Message}");
+    }
+    finally
+    {
+        await conn.CloseAsync();
+    }
+});
+
+app.MapPost("/insertValue/{tableName}/{value}", async (string tableName, int value, MySqlConnection conn) =>
+{
+    try
+    {
+        await conn.OpenAsync();
+        var query = $"INSERT INTO `{tableName}` (Value) VALUES (@Value)";
+        using var cmd = new MySqlCommand(query, conn);
+        cmd.Parameters.AddWithValue("@Value", value);
+        await cmd.ExecuteNonQueryAsync();
+
+        return Results.Ok($"Inserted value {value} into table '{tableName}'.");
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Error inserting value: {ex.Message}");
+    }
+    finally
+    {
+        await conn.CloseAsync();
+    }
+});
+
+app.MapGet("/getValues/{tableName}", async (string tableName, MySqlConnection conn) =>
+{
+    try
+    {
+        await conn.OpenAsync();
+        var query = $"SELECT Value FROM `{tableName}`";
+        using var cmd = new MySqlCommand(query, conn);
+        using var reader = await cmd.ExecuteReaderAsync();
+
+        var values = new List<int>();
+        while (await reader.ReadAsync())
+        {
+            values.Add(reader.GetInt32(0));
+        }
+
+        return Results.Ok(values);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Error fetching values: {ex.Message}");
+    }
+    finally
+    {
+        await conn.CloseAsync();
+    }
+});
+
+app.MapGet("/", () => "Hello from C#!");
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

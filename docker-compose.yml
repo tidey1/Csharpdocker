@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  web:
+    image: tidey1/csharpdocker:1.1  # Replace with your actual API image name
+    container_name: csharp_api
+    ports:
+      - "5248:8080"  # Map the container port to the host port
+ # Make sure the db service starts before the web API
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=localhost;Port=3306;Database=dockertest;User=docker;Password=docker;  # Set database connection string (uses db service name as hostname)
+
+volumes:
+  sql_data:
