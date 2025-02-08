@@ -1,5 +1,7 @@
 # Csharpdocker
 
+currently there is no way to configure this app from docker. the source must be downloaded and changed.
+
 build docker image:
 docker build -t tidey1/csharpdocker:1.1 . 
 
