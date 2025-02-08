@@ -14,4 +14,4 @@ COPY --from=build /out .
 
 EXPOSE 8080
 
-CMD ["dotnet", "YourApp.dll"]
+CMD ["dotnet", "C#Docker.dll"]
