@@ -8,6 +8,8 @@ docker build -t tidey1/csharpdocker:1.1 .
 run docker container:
 docker run -p 8080:8080 -t tidey1/csharpdocker:1.1
 
+docker run -e MY_VARIABLE=helloworld -p 8080:8080 -t tidey1/csharpdocker:1.3
+
 change appsettings.json for own configuration
 
 "DefaultConnection": "Server=192.168.178.21;Database=dockertest;User=docker;Password=docker;"

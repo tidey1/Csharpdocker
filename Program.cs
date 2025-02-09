@@ -6,6 +6,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MySqlConnector;
 
+
+string? myVar = Environment.GetEnvironmentVariable("MY_VARIABLE");
+string? anotherVar = Environment.GetEnvironmentVariable("ANOTHER_VARIABLE");
+
+Console.WriteLine($"MY_VARIABLE: {myVar}");
+Console.WriteLine($"ANOTHER_VARIABLE: {anotherVar}");
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Read connection string from appsettings.json

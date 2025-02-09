@@ -10,6 +10,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Server=localhost;Port=3306;Database=dockertest;User=docker;Password=docker;  # Set database connection string (uses db service name as hostname)
-
+      - MY_VARIABLE=value
+      - ANOTHER_VARIABLE=1234
 volumes:
   sql_data:
